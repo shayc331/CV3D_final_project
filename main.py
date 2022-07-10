@@ -6,7 +6,7 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import sfm
+
 
 FLANN_INDEX_KDTREE = 0
 IM1_PATH = os.path.join(os.getcwd(), r'input\images\same_side\1_05.jpg')
@@ -140,24 +140,54 @@ def get_constraints(p1, p2):
 def findHomography(points, real_points):
     H = np.ones((15, 16))
     for i, (p, real_p) in enumerate(zip(points, real_points)):
-        H[i * 4: i * 4 + 4] = get_constraints(p, real_p)
+        a = get_constraints(p, real_p)
+        H[i * 3: i * 3 + 3] = a
     _, _, vt = np.linalg.svd(H)
     return vt[-1].reshape(4, 4)
 
 
-def clibrate_cameras(P1,P2):
-    #todo - mannuly add points and corresponding real points
-    points1 = np.array([])  # points we choose in the images with corresponding real points
-    real_points1 = np.array([[0, 0, 0, 1]])  # the corresponding real points
+def get_world_points(P, points):
+    world_points = []
+    inv_P = np.linalg.pinv(P)
+    for p in points:
+        X = inv_P @ p
+        X[-1] = 1 if X[-1] == 0 else X[-1] # TODO weird
+        X /= X[-1]
+        world_points.append(X)
+    return world_points
 
-    points2 = np.array([])  # points we choose in the images with corresponding real points
+def clibrate_cameras(P1,P2):
+    # points we choose in the images with corresponding real points
+    #same view im1:
+    points1 = np.array([[753,664, 1],
+                        [65, 415, 1],
+                        [1097, 484, 1],
+                        [1127, 378, 1],
+                        [1194, 281, 1]])
+
+    world_points1 = get_world_points(P1, points1)
+    real_points1 = np.array([[0, 0, 0, 1],
+                             [0,9,0,1],
+                             [8,0,0,1],
+                             [8,0,1.42,1],
+                             [8,-0.91, 2.44, 1]])  # the corresponding real points
+
+    #same view im2:
+    points2 = np.array([[575, 513, 1],
+                        [172, 410, 1],
+                        [103, 390, 1],
+                        [1053, 291, 1],
+                        [1107, 199, 1]])  # points we choose in the images with corresponding real points
+    world_points2 = get_world_points(P2, points2)
     real_points2 = np.array([[0,0,0,1]])  # the corresponding real points
 
     #todo: see if this method will work for 4*4 points....
-    H1 = findHomography(points1, real_points1)  # works with MSE to find optimal H
-    H2 = findHomography(points2, real_points2)
+    H1 = findHomography(world_points1, real_points1)  # works with MSE to find optimal H
+    H2 = findHomography(world_points2, real_points2)
 
     return P1 @ np.linalg.inv(H1), P2 @ np.linalg.inv(H2)
+    # return P1 @ H1, P2 @ H2
+
 
 
 def compute_3d(x1, x2, P1, P2):
@@ -169,11 +199,12 @@ def compute_3d(x1, x2, P1, P2):
     :param P2:
     :return:
     """
-    A = np.array([[x1[0]*P1[2]-P1[0]],
-              [x1[1]*P1[2]-P1[1]],
-              [x2[0]*P2[2]-P2[0]],
-              [x2[1]*P2[2]-P2[1]]])
-    u, s, vt = np.linal.svd(A)
+
+    A = np.array([x1[0]*P1[2]-P1[0],
+              x1[1]*P1[2]-P1[1],
+              x2[0]*P2[2]-P2[0],
+              x2[1]*P2[2]-P2[1]])
+    u, s, vt = np.linalg.svd(A)
     return vt[-1]
 
 
@@ -181,16 +212,16 @@ if __name__ == '__main__':
     img1 = cv2.imread(IM1_PATH, 0)
     img2 = cv2.imread(IM2_PATH, 0)
 
-
     F = get_fundamental(img1, img2)
     P1, P2 = get_cameras_matrix(F)
     P1M, P2M = clibrate_cameras(P1,P2)
 
     # todo - manualy set image coordinates of the ball.
-    point1 = np.array([])
-    point2 = np.array([])
+    point1 = np.array([592, 22, 1])
+    point2 = np.array([445, 77, 1])
 
     X = compute_3d(point1, point2, P1M, P2M)
+    print(X[:3] / X[3])
     # the height will be the z coordinate of X.
 
 
