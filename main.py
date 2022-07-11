@@ -11,30 +11,81 @@ import os
 FLANN_INDEX_KDTREE = 0
 IM1_PATH = os.path.join(os.getcwd(), r'input\images\same_side\1_05.jpg')
 IM2_PATH = os.path.join(os.getcwd(), r'input\images\same_side\2_05.jpg')
+CHESS_PATH = os.path.join(os.getcwd(), r'input\chess\chess.jpeg')
+CHESS_NO_CROP_PATH = os.path.join(os.getcwd(), r'input\chess\chess_no_crop.jpeg')
+CHESS_3 = os.path.join(os.getcwd(), r'input\chess\chess_3.jpeg')
+RIGHT_PATH = os.path.join(os.getcwd(), r'input\chess\right.jpeg')
+LEFT_PATH = os.path.join(os.getcwd(), r'input\chess\left.jpeg')
+
+DIFF_SIDE_IM1_PATH = r'input\images\diff_side\left_sharon.jpg'
+DIFF_SIDE_IM2_PATH = r'input\images\diff_side\right_sharon.jpg'
 
 # points we choose in the images with corresponding real points
 # same view im1:
-points1 = np.array([[753, 664, 1],
-                    [65, 415, 1],
-                    [1097, 484, 1],
-                    [1127, 378, 1],
-                    [1194, 281, 1],
-                    [930, 339, 1]])
-
-real_points = np.array([[0, 0, 0, 1],
-                        [0, 9, 0, 1],
-                        [8, 0, 0, 1],
-                        [8, 0, 1.42, 1],
-                        [8, -0.91, 2.44, 1],
-                        [9, 2.2, 1.7, 1]])  # the corresponding real points
-
+# points1 = np.array([[753, 664, 1],
+#                     [67, 413, 1],
+#                     [1097, 484, 1],
+#                     [1127, 378, 1],
+#                     [1197, 282, 1],
+#                     # [930, 339, 1],
+#                     # [886, 377, 1]
+#                     ])
+#                     # [571, 274, 1]])
+#
+# real_points = np.array([[0, 0, 0, 1],
+#                         [0, 8, 0, 1],
+#                         [9, 0, 0, 1],
+#                         [9, -0.3, 1.42, 1],  # lower net
+#                         [9, -0.91, 2.66, 1],  # pole - amood
+#                         # [9, 2.2, 1.7, 1],  # itamar
+#                         # [4.9, 2, 1.65, 1]
+#                         ])
+#                         # [8, 10, 2.66, 1]])  # the corresponding real points
 # same view im2:
-points2 = np.array([[575, 513, 1],
-                    [172, 410, 1],
-                    [103, 390, 1],
-                    [1053, 291, 1],
-                    [1107, 199, 1],
-                    [884, 274, 1]])
+# points2 = np.array([[575, 513, 1],
+#                     [169, 410, 1],
+#                     [103, 390, 1],
+#                     [1053, 291, 1],
+#                     [1106, 202, 1],
+#                     # [884, 274, 1],
+#                     # [791, 281, 1]
+#                     ])
+#                     # [592, 259, 1]])
+
+
+# diff view points
+# left
+points1 = np.array([
+    [1165, 468, 1],
+    [676, 612, 1],
+    [700, 253, 1],
+    [663, 307, 1],
+    [190, 177, 1],
+    [775, 394, 1]
+
+
+])
+# right
+points2 = np.array([
+    [552, 516, 1],
+    [148, 417, 1],
+    [1095, 186, 1],
+    [1019, 278, 1],
+    [609, 257, 1],
+    [949, 396, 1]
+])
+
+real_points = np.array([
+    [0, 0, 0, 1],
+    [0, 9, 0, 1],
+    [8, -0.91, 2.66, 1],  # pole
+    [8, 0, 1.44, 1],  # lower net
+    [8, 9, 2.44, 1],  # upper net
+    [5, 0, 0, 1]  # 3 line
+
+])
+
+
 
 
 def findMatchingPoints(kp1, des1, kp2, des2, d):
@@ -194,6 +245,7 @@ def calculate_P1_P2():
     P2 = find_projection_matrix(points2, real_points)
     return P1, P2
 
+
 def get_world_points(P, points):
     world_points = []
     inv_P = np.linalg.pinv(P)
@@ -214,6 +266,7 @@ def calibrate_cameras(P1,P2):
                         [1127, 378, 1],
                         [1194, 281, 1],
                         [930, 339, 1]])
+
 
     world_points1 = get_world_points(P1, points1)
     real_points = np.array([[0, 0, 0, 1],
@@ -262,20 +315,20 @@ def compute_3d(x1, x2, P1, P2):
 
 
 def calibrate_camera_matrix():
-    img = cv2.imread(f"chess.jpg", 1)
-
-    objp = np.zeros((6 * 7, 3), np.float32)
-    objp[:, :2] = (np.mgrid[0:7, 0:6].T.reshape(-1, 2)) * 30  # the board squares are 30 cm
+    img = cv2.imread(CHESS_3, 1)
+    img2 = cv2.imread(CHESS_3, 0)
+    objp = np.zeros((6 * 9, 3), np.float32)
+    objp[:, :2] = (np.mgrid[0:9, 0:6].T.reshape(-1, 2))    # the board squares are 30 cm
     print(objp)
     # Color-segmentation to get binary mask
-    lwr = np.array([0, 0, 180])  # need to cut the image to include only the board
-    upr = np.array([179, 61, 252])
+    lwr = np.array([0, 0, 150])  # need to cut the image to include only the board
+    upr = np.array([175, 61, 252])
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     msk = cv2.inRange(hsv, lwr, upr)
 
     # Extract chess-board
     krn = cv2.getStructuringElement(cv2.MORPH_RECT, (50, 30))
-    dlt = cv2.dilate(msk, krn, iterations=5)
+    dlt = cv2.dilate(msk ,krn, iterations=5)
     res = 255 - cv2.bitwise_and(dlt, msk)
 
     # Displaying chess-board features
@@ -285,30 +338,113 @@ def calibrate_camera_matrix():
 
     # display that image
     plt.show()
-    ret, corners = cv2.findChessboardCorners(res, (7, 6),
+    # ret, corners = cv2.findChessboardCorners(res, (9, 6),
+    #                                          flags=cv2.CALIB_CB_ADAPTIVE_THRESH +
+    #                                                cv2.CALIB_CB_FAST_CHECK +
+    #                                                cv2.CALIB_CB_NORMALIZE_IMAGE)
+    ret, corners = cv2.findChessboardCorners(img2, (9, 6),
                                              flags=cv2.CALIB_CB_ADAPTIVE_THRESH +
                                                    cv2.CALIB_CB_FAST_CHECK +
-                                                   cv2.CALIB_CB_NORMALIZE_IMAGE)
+                                                   cv2.CALIB_CB_NORMALIZE_IMAGE
+                                             )
     if ret:
         print(corners)
-        # fnl = cv2.drawChessboardCorners(img, (7, 6), corners, ret)
-        # cv2.imshow("fnl", fnl)
-        # cv2.waitKey(0)
+        fnl = cv2.drawChessboardCorners(img, (9, 6), corners, ret)
+        cv2.imshow("fnl", fnl)
+        cv2.waitKey(0)
     else:
         print("No Checkerboard Found")
 
+        # 190607
+
     ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera([objp], [corners], res.shape[::-1], None, None)
-    print(f"mtx: {mtx}")
-    print(f"dist: {dist}")
-    print(f"rvecs: {rvecs}")
-    print(f"tvecs: {tvecs}")
+    # print(f"mtx: {mtx}")
+    # print(f"dist: {dist}")
+    # print(f"rvecs: {rvecs}")
+    # print(f"tvecs: {tvecs}")
+    return mtx
+
+
+def get_P1_P2(K):
+    P1 = K @ np.append(np.eye(3), np.array([0, 0, 0]).reshape(-1, 1), axis=1)
+    P2 = K @ np.append(np.eye(3), np.array([-0.15, 0, 0]).reshape(-1, 1), axis=1)
+    return P1, P2
+
+
+def calculate_dist_from_plane(plane, point):
+    dist = np.abs(plane[0] * point[0] + plane[1] * point[1] + plane[2] * point[2] + plane[3]) /\
+           np.sqrt(plane[0] ** 2 + plane[1] ** 2 + plane[2] ** 2)
+    return dist
+    # dist = np.abs(a * x + b * y + c * z + d) / math.root(a ** 2 + b ** 2 + c ** 2)
+
+
+def nice_try():
+    # K = calibrate_camera_matrix()
+    K = np.array([[1 / 1.7, 0, 0], [0, 1/1.7, 0], [0, 0, 1]])
+    P1, P2 = get_P1_P2(K)
+    img1 = cv2.imread(LEFT_PATH, 1)
+    img2 = cv2.imread(RIGHT_PATH, 1)
+    cv2.imshow("1", img1)
+    # cv2.waitKey(0)
+    cv2.imshow("2", img2)
+    # cv2.waitKey(0)
+
+    descriptions = ["wallet", "keys", "left corner", "right corner", "ceiling bulb"]
+    points1 = [
+        [271, 328, 1],  # wallet
+        [275, 439, 1],  # keys
+        [174, 426, 1],  # left corner
+        [305, 407, 1],  # right corner
+        [166, 144, 1],  # ceiling bulb
+        [174, 337, 1]  # top left leg
+    ]
+
+    points2 = [
+        [254, 328, 1],  # wallet
+        [256, 440, 1],  # keys
+        [161, 426, 1],  # left corner
+        [293, 407, 1],  # right corner
+        [164, 142, 1],  # ceiling bulb
+        [161, 366, 1]  # top left leg
+    ]
+    points3d = list()
+    for p1, p2, desc in zip(points1, points2, descriptions):
+
+        X = compute_3d(p1, p2, P1, P2)
+        X = np.append(X[:3] / X[3], 1)
+        print(f' 3d {desc}: {X[:3]}')
+        points3d.append(X)
+    floor_points = np.array(points3d[1:4])
+    u, s, vt = np.linalg.svd(floor_points)
+    dist_leg = calculate_dist_from_plane(vt[-1], points3d[-1])
+    # print(dist)
+    factor = 71 / dist_leg
+    dist_wallet = calculate_dist_from_plane(vt[-1], points3d[0])
+    print(dist_wallet * factor)
+
+    a = 3
+
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
-    img1 = cv2.imread(IM1_PATH, 0)
-    img2 = cv2.imread(IM2_PATH, 0)
+    # nice_try()
+    img1 = cv2.imread(DIFF_SIDE_IM1_PATH, 0)
+    img2 = cv2.imread(DIFF_SIDE_IM2_PATH, 0)
 
+    # cv2.imshow("1", img1)
+    # cv2.waitKey(0)
     # F = get_fundamental(img1, img2)
     P1, P2 = calculate_P1_P2()
+
+    sanity_point = np.array([0, 4.5, 0, 1])
+    middle_court = P1 @ sanity_point
+    print(middle_court[:2] / middle_court[2])
     # P1, P2 = get_cameras_matrix(F)
     # P1M, P2M = calibrate_cameras(P1, P2)
 
@@ -316,10 +452,16 @@ if __name__ == '__main__':
     point1 = np.array([592, 22, 1])
     point2 = np.array([445, 77, 1])
 
+    point_11 = np.array([296, 495, 1])
+    point_22 = np.array([303, 444, 1])
+
+    left_ball = np.array([1151, 221, 1])
+    right_ball = np.array([444, 40, 1])
+
+    a = compute_3d(left_ball, right_ball, P1, P2)
+    print(a[:3] / a[3])
+
     # X = compute_3d(point1, point2, P1M, P2M)
     X = compute_3d(point1, point2, P1, P2)
     print(X[:3] / X[3])
-    # the height will be the z coordinate of X.
-
-
-
+    # the
