@@ -11,8 +11,8 @@ DIFF_SIDE_IM2_PATH = r'input\images\diff_side\right_sharon.jpg'
 VIDEO_PATH_LEFT = os.path.join(os.getcwd(), r'input\diffView\3_view2.mp4')
 VIDEO_PATH_RIGHT = os.path.join(os.getcwd(), r'input\diffView\3_view1.mp4')
 
-VIDEO_OUT_PATH_LEFT = os.path.join(os.getcwd(), r'output\3_view2.mp4')
-VIDEO_OUT_PATH_RIGHT = os.path.join(os.getcwd(), r'output\3_view1.mp4')
+VIDEO_OUT_PATH_LEFT = os.path.join(os.getcwd(), r'output\\')
+VIDEO_OUT_PATH_RIGHT = os.path.join(os.getcwd(), r'output\\')
 
 VIDEO_PATH_RIGHT_LAKER = os.path.join(os.getcwd(), r'input\diffView\1_view1.mp4')
 VIDEO_PATH_LEFT_LAKER = os.path.join(os.getcwd(), r'input\diffView\1_view2.mp4')
@@ -411,8 +411,8 @@ def show_results(path, points3d, bbox, user, key, out_path, t):
 
     # Read first frame.
     ok, frame = video.read()
-    fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-    size = (frame.shape[0], frame.shape[1])
+    fourcc = cv2.VideoWriter_fourcc(*'DIVX')
+    size = frame.shape[1], frame.shape[0]
     out = cv2.VideoWriter(out_path, fourcc, 24, size)
     if not ok:
         print('Cannot read video file')
@@ -456,7 +456,7 @@ def show_results(path, points3d, bbox, user, key, out_path, t):
 
         # Display result
         out.write(frame)
-        cv2.imshow("Tracking", frame)
+        # cv2.imshow("Tracking", frame) #TODO uncomment for showing result
 
         # Exit if ESC pressed
         k = cv2.waitKey(1) & 0xff
@@ -472,8 +472,8 @@ def run(fp_l, fp_r, left_bbox, right_bbox, user, t=0):
     left_centered = track2(fp_l, left_bbox, t)
     right_centered = track2(fp_r, right_bbox, t)
     points3d = [compute_3d(l, r, P_LEFT, P_RIGHT) for l, r in zip(left_centered, right_centered)]
-    show_results(fp_l, points3d, left_bbox, user, "left", VIDEO_OUT_PATH_LEFT, t)
-    show_results(fp_r, points3d, right_bbox, user, "right", VIDEO_OUT_PATH_RIGHT, t)
+    show_results(fp_l, points3d, left_bbox, user, "left", VIDEO_OUT_PATH_LEFT + user + "_LEFT.mp4", t)
+    show_results(fp_r, points3d, right_bbox, user, "right", VIDEO_OUT_PATH_RIGHT + user + "_RIGHT.mp4", t)
 
 
 
